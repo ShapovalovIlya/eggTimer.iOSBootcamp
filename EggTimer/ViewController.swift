@@ -7,10 +7,17 @@
 //
 
 import UIKit
+import AVFoundation
 
 class ViewController: UIViewController {
     
-    var timer: Timer?
+    @IBOutlet weak var titleLabel: UILabel!
+    @IBOutlet weak var progressBar: UIProgressView!
+    
+    var player: AVAudioPlayer?
+    var timer = Timer()
+    var totalTime = 0
+    var secondsPast = 0
     
     let eggTimes = [
         "Soft": 300,
@@ -18,25 +25,55 @@ class ViewController: UIViewController {
         "Hard": 720
     ]
     
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        titleLabel.text = "How do you like your eggs?"
+        progressBar.progress = 0.0
+    }
 
     @IBAction func hardnessSelected(_ sender: UIButton) {
         
-        guard let eggStatus = sender.currentTitle else { return }
-        guard let hardness = eggTimes[eggStatus] else { return }
-        print(hardness)
-        timeRemaining(time: hardness)
-        timer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(timeRemaining), userInfo: nil, repeats: true)
+        timer.invalidate()
+        guard let hardness = sender.currentTitle else { return }
+        totalTime = eggTimes[hardness]!
+        progressBar.progress = 0.0
+        titleLabel.text = hardness
+       
+        timer(secondsRemainig: totalTime)
         
     }
     
-    @objc func timeRemaining(time: Int) {
-        var timeLeft = time
-        
-        if timeLeft > 0 {
-            timeLeft -= 1
-            print("It's \(timeLeft) left")
-        } else {
-            timer?.invalidate()
+   //Creating function for set timer
+    func timer(secondsRemainig: Int) {
+            
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            if self.secondsPast < self.totalTime {
+                self.secondsPast += 1
+                //Created property that represent progress in percentage for the progressView
+                let percentageProgress = Float(self.secondsPast) / Float(self.totalTime)
+
+                self.progressBar.progress = percentageProgress
+                print(percentageProgress)
+            } else {
+                self.timer.invalidate()
+                self.titleLabel.text = "Done!"
+                self.alarmSound()
+            }
+        }
+    }
+    //Function for making alarm-sound
+    func alarmSound() {
+        guard let url = Bundle.main.url(forResource: "alarm_sound", withExtension: ".mp3") else { return }
+                
+        do {
+            player = try AVAudioPlayer(contentsOf: url)
+            guard let safePlayer = player else { return }
+            safePlayer.play()
+        }
+        catch {
+            print("Something went wrong!")
+            return
         }
     }
     
